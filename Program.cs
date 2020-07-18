@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace RomanCalc
 {
@@ -8,28 +10,45 @@ namespace RomanCalc
     {
         static void Main(string[] args)
         {
-            if (args == null || args.Length == 0)
+            string param = "";
+            if (args != null && args.Length > 0) param = args[0];
+
+            while (string.IsNullOrWhiteSpace(param))
             {
                 Console.WriteLine("Please specify a filename as a parameter.");
+                Console.WriteLine("Or provide a roman numeral or number as argument");
+                param = Console.ReadLine();
+            }
+
+            string result;
+
+            if (File.Exists(param))
+            {
+                var fileContents = System.IO.File.ReadAllText(param).Split("\n");
+
+                fileContents.ToList().ForEach(x =>
+                {
+                    result = int.TryParse(x, out int parsedArg)
+                        ? RomanNumerals.Parser.ArabicToRoman(parsedArg)
+                        : RomanNumerals.Parser.RomanToArabic(x).ToString();
+
+                    Console.WriteLine(result);
+                });
                 return;
             }
 
-            var fileContents = System.IO.File.ReadAllText(args[0]).Split("\n");
+            result = int.TryParse(param, out int parsedArg)
+                ? RomanNumerals.Parser.ArabicToRoman(parsedArg)
+                : RomanNumerals.Parser.RomanToArabic(param).ToString();
 
-            fileContents.ToList().ForEach(x => {
-                int.TryParse(x, out int result);
-                if (result == 0) {
-                    Console.WriteLine(RomanNumerals.Parser.RomanToArabic(x));
-                } else {
-                    Console.WriteLine(RomanNumerals.Parser.ArabicToRoman(result));
-                }
-            });
+
+            Console.WriteLine(result);
         }
     }
 
     static class RomanNumerals
     {
-        static Dictionary<string, int> Mapping = new Dictionary<string, int>() {
+        static Dictionary<string, int> RomanToArabicMapping = new Dictionary<string, int>() {
             {"I", 1},
             {"IV", 4},
             {"V", 5},
@@ -45,7 +64,7 @@ namespace RomanCalc
             {"M", 1000}
         };
 
-        static int[] Stacking = {
+        static int[] Rungs = {
             1000,
             100,
             10,
@@ -54,22 +73,24 @@ namespace RomanCalc
 
         public static class Parser
         {
-            public static int RomanToArabic(string Roman) => RomanToArabicParser(Roman);
+            public static string RomanToArabic(string Roman) => RomanToArabicParser(Roman);
             public static string ArabicToRoman(int Arabic) => ArabicToRomanParser(Arabic);
-            static int RomanToArabicParser(string Roman)
+            static string RomanToArabicParser(string Roman)
             {
+                if (!Regex.Match(Roman, @"[IVXLCDM]").Success) return $"Cannot parse {Roman}";
+
                 int total = 0;
                 for (var i = 0; i < Roman.Length; i++)
                 {
-                    int current = Mapping[Roman[i].ToString()];
+                    int current = RomanToArabicMapping[Roman[i].ToString()];
                     if (i > 0)
                     {
                         string currentChar = Roman[i].ToString();
                         string nextChar = i == Roman.Length - 1 ? "" : Roman[i + 1].ToString();
 
-                        if (Mapping.ContainsKey(currentChar + nextChar))
+                        if (RomanToArabicMapping.ContainsKey(currentChar + nextChar))
                         {
-                            total += Mapping[currentChar + nextChar];
+                            total += RomanToArabicMapping[currentChar + nextChar];
                             i++;
                         }
                         else
@@ -82,18 +103,18 @@ namespace RomanCalc
                         total += current;
                     }
                 }
-                return total;
+                return total.ToString();
             }
-
             static string ArabicToRomanParser(int Arabic, string total = "", int count = 0)
             {
-                if (count > 1 && Arabic == 0) { return total; }
-                if (Arabic <= 0 || Arabic > 3999) { return "Cannot parse"; }
+                if (count > 1 && Arabic == 0) return total; 
+                if (Arabic <= 0 || Arabic > 3999) return Arabic == 0 ? "nulla" : $"Cannot parse {Arabic}";
 
-                var times = Arabic / Stacking[count];
-                var modifier = Stacking[count] >= 100 ? "C" : Stacking[count] >= 10 ? "X" : "I";
-                var halfWay = Stacking[count] >= 100 ? "D" : Stacking[count] >= 10 ? "L" : "V";
-                var letter = Mapping.First(x => x.Value == Stacking[count]).Key;
+                var level = Rungs[count];
+                var times = Arabic / level;
+                var modifier = level >= 100 ? "C" : level >= 10 ? "X" : "I";
+                var halfWay = level >= 100 ? "D" : level >= 10 ? "L" : "V";
+                var letter = RomanToArabicMapping.First(x => x.Value == level).Key;
 
                 if (times >= 1)
                 {
@@ -114,7 +135,7 @@ namespace RomanCalc
                                 total += $"{halfWay}{string.Concat(Enumerable.Repeat(letter, times - 5))}";
                                 break;
                             case int t when t == 9:
-                                letter = Mapping.First(x => x.Value == Stacking[count - 1]).Key;
+                                letter = RomanToArabicMapping.First(x => x.Value == Rungs[count - 1]).Key;
                                 total += $"{modifier}{letter}";
                                 break;
                         }
@@ -122,20 +143,18 @@ namespace RomanCalc
                     else
                     {
                         total += string.Concat(Enumerable.Repeat(letter, times));
-                        var remainder = Arabic % Stacking[count];
+                        var remainder = Arabic % level;
                         if (remainder <= 0) return total;
                         return ArabicToRomanParser(remainder, total, count + 1);
                     }
                 }
 
-                bool theEnd = Stacking.Length - 1 == count;
-                if (times == 0 && !theEnd)
-                {
-                    return ArabicToRomanParser(Arabic, total, count + 1);
-                }
+                bool theEnd = Rungs.Length - 1 == count;
+                if (times == 0 && !theEnd) return ArabicToRomanParser(Arabic, total, count + 1);
+                
                 if (!theEnd)
                 {
-                    var remainder = Arabic % Stacking[count];
+                    var remainder = Arabic % level;
                     return ArabicToRomanParser(remainder, total, count + 1);
                 }
 
