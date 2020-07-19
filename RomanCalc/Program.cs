@@ -20,33 +20,29 @@ namespace RomanCalc
                 param = Console.ReadLine();
             }
 
-            string result;
-
             if (File.Exists(param))
             {
-                var fileContents = System.IO.File.ReadAllText(param).Split("\n");
-
-                fileContents.ToList().ForEach(x =>
-                {
-                    result = int.TryParse(x, out int parsedArg)
-                        ? RomanNumerals.Parser.ArabicToRoman(parsedArg)
-                        : RomanNumerals.Parser.RomanToArabic(x).ToString();
-
-                    Console.WriteLine(result);
-                });
+                ConsoleHelper.HandleFile(param).ToList().ForEach(x => Console.WriteLine(x));
                 return;
             }
 
-            result = int.TryParse(param, out int parsedArg)
-                ? RomanNumerals.Parser.ArabicToRoman(parsedArg)
-                : RomanNumerals.Parser.RomanToArabic(param).ToString();
-
-
-            Console.WriteLine(result);
+            Console.WriteLine(ConsoleHelper.HandleInput(param));
         }
     }
 
-    static class RomanNumerals
+    public struct ConsoleHelper
+    {
+        public static IEnumerable<string> HandleFile(string filePath) =>
+         System.IO.File.ReadAllText(filePath).Split("\n").ToList().Select(x => int.TryParse(x, out int parsedArg)
+                    ? RomanNumerals.Parser.ArabicToRoman(parsedArg)
+                    : RomanNumerals.Parser.RomanToArabic(x).ToString());
+
+        public static string HandleInput(string input) => int.TryParse(input, out int parsedArg)
+                ? RomanNumerals.Parser.ArabicToRoman(parsedArg)
+                : RomanNumerals.Parser.RomanToArabic(input).ToString();
+    }
+
+    public static class RomanNumerals
     {
         static Dictionary<string, int> RomanToArabicMapping = new Dictionary<string, int>() {
             {"I", 1},
@@ -63,14 +59,7 @@ namespace RomanCalc
             {"CM", 900},
             {"M", 1000}
         };
-
-        static int[] Rungs = {
-            1000,
-            100,
-            10,
-            1,
-        };
-
+        static int[] Rungs = { 1000, 100, 10, 1 };
         public static class Parser
         {
             public static string RomanToArabic(string Roman) => RomanToArabicParser(Roman);
@@ -107,7 +96,7 @@ namespace RomanCalc
             }
             static string ArabicToRomanParser(int Arabic, string total = "", int count = 0)
             {
-                if (count > 1 && Arabic == 0) return total; 
+                if (count > 1 && Arabic == 0) return total;
                 if (Arabic <= 0 || Arabic > 3999) return Arabic == 0 ? "nulla" : $"Cannot parse {Arabic}";
 
                 var level = Rungs[count];
@@ -126,7 +115,7 @@ namespace RomanCalc
                                 total += string.Concat(Enumerable.Repeat(letter, times));
                                 break;
                             case int t when t == 4:
-                                total += $"{modifier}{letter}";
+                                total += $"{modifier}{halfWay}";
                                 break;
                             case int t when t == 5:
                                 total += halfWay;
@@ -151,7 +140,7 @@ namespace RomanCalc
 
                 bool theEnd = Rungs.Length - 1 == count;
                 if (times == 0 && !theEnd) return ArabicToRomanParser(Arabic, total, count + 1);
-                
+
                 if (!theEnd)
                 {
                     var remainder = Arabic % level;
