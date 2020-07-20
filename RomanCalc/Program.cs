@@ -62,20 +62,20 @@ namespace RomanCalc
         static int[] Rungs = { 1000, 100, 10, 1 };
         public static class Parser
         {
-            public static string RomanToArabic(string Roman) => RomanToArabicParser(Roman);
-            public static string ArabicToRoman(int Arabic) => ArabicToRomanParser(Arabic);
-            static string RomanToArabicParser(string Roman)
+            public static string RomanToArabic(string roman) => RomanToArabicParser(roman);
+            public static string ArabicToRoman(int arabic) => ArabicToRomanParser(arabic);
+            static string RomanToArabicParser(string roman)
             {
-                if (!Regex.Match(Roman, @"[IVXLCDM]").Success) return $"Cannot parse {Roman}";
+                if (!Regex.Match(roman, @"[IVXLCDM]").Success) return $"Cannot parse {roman}";
 
                 int total = 0;
-                for (var i = 0; i < Roman.Length; i++)
+                for (var i = 0; i < roman.Length; i++)
                 {
-                    int current = RomanToArabicMapping[Roman[i].ToString()];
+                    int current = RomanToArabicMapping[roman[i].ToString()];
                     if (i > 0)
                     {
-                        string currentChar = Roman[i].ToString();
-                        string nextChar = i == Roman.Length - 1 ? "" : Roman[i + 1].ToString();
+                        string currentChar = roman[i].ToString();
+                        string nextChar = i == roman.Length - 1 ? "" : roman[i + 1].ToString();
 
                         if (RomanToArabicMapping.ContainsKey(currentChar + nextChar))
                         {
@@ -94,13 +94,13 @@ namespace RomanCalc
                 }
                 return total.ToString();
             }
-            static string ArabicToRomanParser(int Arabic, string total = "", int count = 0)
+            static string ArabicToRomanParser(int arabic, string total = "", int count = 0)
             {
-                if (count > 1 && Arabic == 0) return total;
-                if (Arabic <= 0 || Arabic > 3999) return Arabic == 0 ? "nulla" : $"Cannot parse {Arabic}";
+                if (count > 1 && arabic == 0) return total;
+                if (arabic <= 0 || arabic > 3999) return arabic == 0 ? "nulla" : $"Cannot parse {arabic}";
 
                 var level = Rungs[count];
-                var times = Arabic / level;
+                var times = arabic / level;
                 var modifier = level >= 100 ? "C" : level >= 10 ? "X" : "I";
                 var halfWay = level >= 100 ? "D" : level >= 10 ? "L" : "V";
                 var letter = RomanToArabicMapping.First(x => x.Value == level).Key;
@@ -132,18 +132,18 @@ namespace RomanCalc
                     else
                     {
                         total += string.Concat(Enumerable.Repeat(letter, times));
-                        var remainder = Arabic % level;
+                        var remainder = arabic % level;
                         if (remainder <= 0) return total;
                         return ArabicToRomanParser(remainder, total, count + 1);
                     }
                 }
 
                 bool theEnd = Rungs.Length - 1 == count;
-                if (times == 0 && !theEnd) return ArabicToRomanParser(Arabic, total, count + 1);
+                if (times == 0 && !theEnd) return ArabicToRomanParser(arabic, total, count + 1);
 
                 if (!theEnd)
                 {
-                    var remainder = Arabic % level;
+                    var remainder = arabic % level;
                     return ArabicToRomanParser(remainder, total, count + 1);
                 }
 
